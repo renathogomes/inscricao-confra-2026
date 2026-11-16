@@ -49,7 +49,6 @@
   const $ = (id) => document.getElementById(id);
   const brl = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   const plural = (n, um, varios) => n + ' ' + (n === 1 ? um : varios);
-  const kg = (n) => Number(n).toLocaleString('pt-BR') + ' kg';
   const rolagem = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   const telaPequena = window.matchMedia('(max-width: 700px)');
   const soDigitos = (v) => String(v || '').replace(/\D/g, '');
@@ -220,7 +219,6 @@
       adultos: adultos,
       menores: comIdade.length - adultos,
       total: adultos * C.valorAdulto,
-      kg: adultos * C.kgPorAdulto,
     };
   }
 
@@ -239,8 +237,38 @@
     return plural(i, 'ano', 'anos');
   }
 
-  const nomeAlimento = (p) => p.alimento || 'alimento não perecível';
-  const alimentoTexto = (p) => kg(C.kgPorAdulto) + ' de ' + nomeAlimento(p);
+  // Usado quando a lista de alimentos do config.js está vazia
+  const ALIMENTO_GENERICO = { nome: 'alimento não perecível', quantidade: 1, unidade: 'kg' };
+  const UNIDADES_ABREVIADAS = { kg: 'kg', g: 'g', l: 'L', ml: 'ml' };
+
+  const listaAlimentos = () => (C.alimentos || []).filter((a) => a && a.nome);
+  const itemDe = (p) => listaAlimentos().find((a) => a.nome === p.alimento) || ALIMENTO_GENERICO;
+
+  /* "2 kg de arroz", "1 dúzia de ovos", "4 pacotes de macarrão".
+     "vezes" soma a quantidade quando mais de um adulto leva o mesmo item. */
+  function quantidadeTexto(item, vezes) {
+    // Item só com o nome (como no config.js antigo) vale 1 kg
+    const semMedida = item.quantidade == null && item.unidade == null;
+    let q = (Number(item.quantidade) > 0 ? Number(item.quantidade) : 1) * (vezes || 1);
+    let u = semMedida ? 'kg' : String(item.unidade || '').trim();
+    const abreviada = UNIDADES_ABREVIADAS[u.toLowerCase()];
+    if (abreviada) {
+      u = abreviada;
+      if (u === 'g' && q >= 1000) {
+        q /= 1000;
+        u = 'kg';
+      } else if (u === 'ml' && q >= 1000) {
+        q /= 1000;
+        u = 'L';
+      }
+    } else if (u && q > 1) {
+      u = u.replace(/^\S+/, (palavra) => palavra + 's'); // pacote → pacotes, dúzia → dúzias
+    }
+    const numero = q.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+    return numero + ' ' + (u ? u + ' de ' : '') + item.nome;
+  }
+
+  const alimentoTexto = (p) => quantidadeTexto(itemDe(p), 1);
   const primeiroNome = (p) => p.nome.trim().split(/\s+/)[0];
 
   function detalheTotal(t) {
@@ -284,7 +312,7 @@
      Dentro da mesma inscrição a página evita repetir enquanto houver opção.
      Quem já tem alimento fica com ele. */
   function sortearAlimentos() {
-    const lista = (C.alimentos || []).filter((a) => a && a.nome);
+    const lista = listaAlimentos();
     const peso = (a) => (Number(a.proporcao) > 0 ? Number(a.proporcao) : 1);
     const adultos = estado.pessoas.filter(ehAdulto);
 
@@ -322,12 +350,12 @@
   function resumoAlimentos() {
     const grupos = new Map();
     estado.pessoas.filter(ehAdulto).forEach((p) => {
-      const nome = nomeAlimento(p);
-      if (!grupos.has(nome)) grupos.set(nome, []);
-      grupos.get(nome).push(primeiroNome(p));
+      const item = itemDe(p);
+      if (!grupos.has(item)) grupos.set(item, []);
+      grupos.get(item).push(primeiroNome(p));
     });
     return Array.from(grupos, (par) => ({
-      texto: kg(par[1].length * C.kgPorAdulto) + ' de ' + par[0],
+      texto: quantidadeTexto(par[0], par[1].length),
       quem: par[1],
     }));
   }
@@ -365,7 +393,9 @@
     regra.append(
       elTexto('strong', '', brl(C.valorAdulto) + ' por adulto'),
       ' (' + C.idadeAdulto + ' anos ou mais) e ',
-      elTexto('strong', '', kg(C.kgPorAdulto) + ' de alimento'),
+      ...(listaAlimentos().length
+        ? [elTexto('strong', '', 'um alimento'), ' para a cozinha (a inscrição mostra qual e quanto)']
+        : [elTexto('strong', '', quantidadeTexto(ALIMENTO_GENERICO, 1))]),
       '. Menores de ' + C.idadeAdulto + ' anos não pagam.'
     );
   }
@@ -504,7 +534,7 @@
       s.textContent = 'Informe a idade para calcular';
     } else if (i >= C.idadeAdulto) {
       s.dataset.tipo = 'adulto';
-      s.textContent = 'Adulto · ' + brl(C.valorAdulto) + ' + ' + kg(C.kgPorAdulto) + ' de alimento';
+      s.textContent = 'Adulto · ' + brl(C.valorAdulto) + ' + alimento';
     } else {
       s.dataset.tipo = 'menor';
       s.textContent = 'Menor de ' + C.idadeAdulto + ' anos · não paga';
@@ -665,7 +695,6 @@
     const partes = [];
     if (t.adultos) partes.push(plural(t.adultos, 'adulto', 'adultos'));
     if (t.menores) partes.push(plural(t.menores, 'menor', 'menores') + ' de ' + C.idadeAdulto + ' anos');
-    if (t.adultos) partes.push(kg(t.kg) + ' de alimento');
     $('barra-detalhe').textContent = partes.length ? partes.join(' · ') : 'Informe as idades para calcular';
 
     const visivel = estado.etapa === 1 && formularioNaTela && !tecladoAberto();
@@ -769,7 +798,7 @@
         adulto: ehAdulto(p),
         igreja: igrejaTexto(p),
         valor: ehAdulto(p) ? C.valorAdulto : 0,
-        alimento: ehAdulto(p) ? nomeAlimento(p) : '',
+        alimento: ehAdulto(p) ? alimentoTexto(p) : '',
       })),
     };
   }
@@ -1019,6 +1048,7 @@
       li.append(elTexto('span', '', a.texto), elTexto('span', '', listaComE(a.quem)));
       levar.append(li);
     });
+    $('levar-nota').hidden = !listaAlimentos().length;
     $('levar').hidden = !t.adultos;
   }
 

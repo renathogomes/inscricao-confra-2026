@@ -1042,6 +1042,11 @@ main {
   overflow-wrap: anywhere;
 }
 
+.levar-nota {
+  font-size: 0.875rem;
+  color: var(--tinta-suave);
+}
+
 /* ---------- Pix ---------- */
 
 .pix {
