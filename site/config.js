@@ -52,7 +52,8 @@ window.CONFRA = {
    * Veja como gerar no começo do arquivo planilha/Codigo.gs.
    * Enquanto estiver vazio, as inscrições NÃO ficam gravadas em lugar nenhum.
    */
-  planilha: '',
+  planilha:
+    'https://script.google.com/macros/s/AKfycbzDAo4k53nqBoTaSkSdTiHZBIDHm305QIihVfbuvXYSesAhXDbSpdVWWA6M5w7YWMiRig/exec',
 
   // Fotos do local, na ordem em que aparecem. Os arquivos ficam na pasta "fotos".
   // Para tirar uma foto da página, apague a linha dela. Foto que não existir não aparece.
