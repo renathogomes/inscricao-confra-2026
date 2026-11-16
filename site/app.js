@@ -2,6 +2,8 @@
  * Lógica da página de inscrição.
  * As regras (valor, idade, alimentos, Pix, WhatsApp e planilha) vêm do config.js.
  * Etapas: 1) quem vai  2) conferir e confirmar (grava na planilha)  3) pagamento.
+ * Dá para voltar a qualquer etapa. Se a inscrição já foi registrada e a pessoa muda algo,
+ * a nova confirmação vai como correção: substitui a inscrição anterior na planilha.
  */
 (function () {
   'use strict';
@@ -23,6 +25,7 @@
   const DENOMINACAO = 'Igreja Adventista da Promessa';
   // Código da inscrição sem caracteres que se confundem (0/O, 1/I/L) e sem E
   const LETRAS_CODIGO = 'ABCDFGHJKMNPQRSTUVWXYZ23456789';
+  const VOLTAR_PARA = { 2: 'Voltar para os participantes', 3: 'Voltar para o resumo' };
 
   const IGREJAS = [
     { id: 'poco', rotulo: C.evento.igreja },
@@ -51,6 +54,7 @@
   const telaPequena = window.matchMedia('(max-width: 700px)');
   const soDigitos = (v) => String(v || '').replace(/\D/g, '');
   const planilhaConfigurada = () => Boolean(String(C.planilha || '').trim());
+  const codigoValido = (c) => /^[A-Z0-9]{6}$/.test(c || '');
 
   function elTexto(tag, classe, texto) {
     const e = document.createElement(tag);
@@ -125,9 +129,26 @@
       respEditado: false,
       telefone: '',
       etapa: 1,
-      codigo: '',
+      codigo: '', // código da inscrição que está na planilha
       enviada: false,
+      assinatura: '', // os dados que estão na planilha, para saber se a pessoa mudou algo
+      registrado: null, // cópia desses dados, para "Desfazer alterações"
+      ultima: null, // última tentativa de envio: { codigo, assinatura }
+      tentativas: [], // códigos tentados desde o último envio que deu certo
+      substituiu: '', // código que a última correção substituiu
     };
+  }
+
+  function lerPessoas(lista) {
+    return lista.slice(0, MAX_PESSOAS).map((p) =>
+      Object.assign(novaPessoa(), {
+        nome: String((p && p.nome) || '').slice(0, 80),
+        idade: soDigitos(p && p.idade).slice(0, 3),
+        igreja: IGREJAS.some((i) => p && i.id === p.igreja) ? p.igreja : 'poco',
+        detalhe: String((p && p.detalhe) || '').slice(0, 80),
+        alimento: p && typeof p.alimento === 'string' ? p.alimento : null,
+      })
+    );
   }
 
   function carregar() {
@@ -136,23 +157,32 @@
       if (!d || !Array.isArray(d.pessoas) || !d.pessoas.length) return null;
       const validade = d.enviada ? VALIDADE_ENVIADA : VALIDADE_RASCUNHO;
       if (!d.salvoEm || Date.now() - d.salvoEm > validade) return null;
-      const codigo = /^[A-Z0-9]{6}$/.test(d.codigo || '') ? d.codigo : '';
+      const codigo = codigoValido(d.codigo) ? d.codigo : '';
+      const r = d.registrado;
       return {
-        pessoas: d.pessoas.slice(0, MAX_PESSOAS).map((p) =>
-          Object.assign(novaPessoa(), {
-            nome: String((p && p.nome) || '').slice(0, 80),
-            idade: soDigitos(p && p.idade).slice(0, 3),
-            igreja: IGREJAS.some((i) => p && i.id === p.igreja) ? p.igreja : 'poco',
-            detalhe: String((p && p.detalhe) || '').slice(0, 80),
-            alimento: p && typeof p.alimento === 'string' ? p.alimento : null,
-          })
-        ),
+        pessoas: lerPessoas(d.pessoas),
         responsavel: String(d.responsavel || '').slice(0, 80),
         respEditado: Boolean(d.respEditado),
         telefone: soDigitos(d.telefone).slice(0, 11),
         etapa: [1, 2, 3].indexOf(d.etapa) !== -1 ? d.etapa : 1,
         codigo: codigo,
         enviada: Boolean(d.enviada && codigo),
+        assinatura: typeof d.assinatura === 'string' ? d.assinatura : '',
+        registrado:
+          r && Array.isArray(r.pessoas) && r.pessoas.length
+            ? {
+                pessoas: lerPessoas(r.pessoas),
+                responsavel: String(r.responsavel || '').slice(0, 80),
+                respEditado: Boolean(r.respEditado),
+                telefone: soDigitos(r.telefone).slice(0, 11),
+              }
+            : null,
+        ultima:
+          d.ultima && codigoValido(d.ultima.codigo) && typeof d.ultima.assinatura === 'string'
+            ? { codigo: d.ultima.codigo, assinatura: d.ultima.assinatura }
+            : null,
+        tentativas: Array.isArray(d.tentativas) ? d.tentativas.filter(codigoValido).slice(-10) : [],
+        substituiu: codigoValido(d.substituiu) ? d.substituiu : '',
       };
     } catch (e) {
       return null;
@@ -223,8 +253,36 @@
     return texto;
   }
 
+  // O que importa para saber se a inscrição mudou depois de registrada
+  function assinaturaDe(dados) {
+    return JSON.stringify({
+      p: dados.pessoas.map((p) => [
+        p.nome.trim(),
+        String(p.idade),
+        p.igreja,
+        igrejaDe(p).pergunta ? p.detalhe.trim() : '',
+      ]),
+      r: dados.responsavel.trim(),
+      t: soDigitos(dados.telefone),
+    });
+  }
+
+  const alterada = () => estado.enviada && assinaturaDe(estado) !== estado.assinatura;
+
+  function copiaDosDados() {
+    return JSON.parse(
+      JSON.stringify({
+        pessoas: estado.pessoas,
+        responsavel: estado.responsavel,
+        respEditado: estado.respEditado,
+        telefone: estado.telefone,
+      })
+    );
+  }
+
   /* Cada adulto recebe um alimento da lista, respeitando as proporções do config.js.
-     Dentro da mesma inscrição a página evita repetir enquanto houver opção. */
+     Dentro da mesma inscrição a página evita repetir enquanto houver opção.
+     Quem já tem alimento fica com ele. */
   function sortearAlimentos() {
     const lista = (C.alimentos || []).filter((a) => a && a.nome);
     const peso = (a) => (Number(a.proporcao) > 0 ? Number(a.proporcao) : 1);
@@ -654,8 +712,13 @@
 
   /* ---------- Etapa 2: conferir e confirmar ---------- */
 
+  function rotuloConfirmar() {
+    if (!estado.enviada) return 'Confirmar inscrição';
+    return alterada() ? 'Enviar correção' : 'Ir para o pagamento';
+  }
+
   function renderConfirmacao() {
-    if (!estado.enviada) sortearAlimentos();
+    sortearAlimentos();
     const t = totais();
 
     const lista = $('resumo-lista');
@@ -676,13 +739,24 @@
     $('resumo-total-detalhe').textContent = detalheTotal(t);
     $('resumo-contato').textContent =
       'Inscrição feita por ' + estado.responsavel.trim() + ' · WhatsApp ' + formatarTelefone(estado.telefone);
+
+    let intro = 'Confira os dados. Depois de confirmar, aparece o Pix para o pagamento.';
+    if (alterada()) {
+      intro = 'Você alterou a inscrição ' + estado.codigo + '. Confira e envie a correção: ' +
+        'ela substitui a inscrição anterior na lista da organização.';
+    } else if (estado.enviada) {
+      intro = 'Esta inscrição já está registrada com o código ' + estado.codigo + '.';
+    }
+    $('confirmar-intro').textContent = intro;
+    $('confirmar').textContent = rotuloConfirmar();
+    $('desfazer').hidden = !alterada();
     $('envio-erro').hidden = true;
   }
 
-  function dadosParaPlanilha() {
+  function dadosParaPlanilha(codigo) {
     const t = totais();
     return {
-      codigo: estado.codigo,
+      codigo: codigo,
       responsavel: estado.responsavel.trim(),
       whatsapp: formatarTelefone(estado.telefone),
       total: t.total,
@@ -729,40 +803,85 @@
       validar();
       return;
     }
-    // O código nasce na primeira tentativa e se repete nas seguintes: a planilha não duplica
-    if (!estado.codigo) estado.codigo = novoCodigo();
+    // Já registrada e sem mudanças: só mostra o pagamento
+    if (estado.enviada && !alterada()) {
+      mostrarEtapa(3, true);
+      return;
+    }
+
+    // Os mesmos dados enviados de novo (a internet caiu) usam o mesmo código: a planilha não duplica.
+    // Dados diferentes ganham código novo, e os códigos anteriores saem da planilha.
+    const assinatura = assinaturaDe(estado);
+    let codigo;
+    if (estado.ultima && estado.ultima.assinatura === assinatura) {
+      codigo = estado.ultima.codigo;
+    } else {
+      codigo = novoCodigo();
+      estado.ultima = { codigo: codigo, assinatura: assinatura };
+      estado.tentativas = estado.tentativas.concat(codigo).slice(-10);
+    }
+    const substitui = [estado.codigo].concat(estado.tentativas).filter((c) => c && c !== codigo);
     salvar();
 
     const botao = $('confirmar');
     enviando = true;
+    atualizarNavegacao();
     botao.disabled = true;
-    $('voltar').disabled = true;
     botao.setAttribute('aria-busy', 'true');
     botao.textContent = 'Enviando…';
     $('envio-erro').hidden = true;
 
     try {
-      const resposta = await enviarParaPlanilha(dadosParaPlanilha());
+      const dados = dadosParaPlanilha(codigo);
+      if (substitui.length) dados.substitui = substitui;
+      const resposta = await enviarParaPlanilha(dados);
       if (!resposta || resposta.ok !== true) {
         throw new Error((resposta && resposta.erro) || 'resposta inesperada da planilha');
       }
+      estado.substituiu = estado.enviada ? estado.codigo : '';
+      estado.codigo = codigo;
       estado.enviada = true;
+      estado.assinatura = assinatura;
+      estado.registrado = copiaDosDados();
+      estado.ultima = null;
+      estado.tentativas = [];
       enviando = false;
       mostrarEtapa(3, true);
     } catch (erro) {
       console.warn('Não foi possível enviar a inscrição:', erro);
       $('envio-erro').textContent =
         navigator.onLine === false
-          ? 'Sem conexão com a internet. Conecte-se e toque em Confirmar inscrição de novo.'
-          : 'Não foi possível enviar a inscrição agora. Espere um pouco e toque em Confirmar inscrição de novo.';
+          ? 'Sem conexão com a internet. Conecte-se e toque no botão de novo.'
+          : 'Não foi possível enviar agora. Espere um pouco e toque no botão de novo.';
       $('envio-erro').hidden = false;
     } finally {
       enviando = false;
       botao.disabled = false;
-      $('voltar').disabled = false;
       botao.removeAttribute('aria-busy');
-      botao.textContent = 'Confirmar inscrição';
+      botao.textContent = rotuloConfirmar();
+      atualizarNavegacao();
     }
+  }
+
+  // Volta tudo para como está na planilha
+  function desfazerAlteracoes() {
+    const r = estado.registrado;
+    if (!r) return;
+    estado.pessoas = r.pessoas.map((p) =>
+      Object.assign(novaPessoa(), {
+        nome: p.nome,
+        idade: p.idade,
+        igreja: p.igreja,
+        detalhe: p.detalhe,
+        alimento: p.alimento,
+      })
+    );
+    estado.responsavel = r.responsavel;
+    estado.respEditado = r.respEditado;
+    estado.telefone = r.telefone;
+    $('pessoas').textContent = '';
+    iniciarFormulario();
+    mostrarEtapa(3, true);
   }
 
   /* ---------- Etapa 3: pagamento ---------- */
@@ -775,7 +894,9 @@
 
   function montarMensagem() {
     const t = totais();
-    const linhas = ['*Inscrição · ' + C.evento.nome + '*', 'Código: ' + estado.codigo, C.evento.igreja];
+    const linhas = ['*Inscrição · ' + C.evento.nome + '*', 'Código: ' + estado.codigo];
+    if (estado.substituiu) linhas.push('(correção da inscrição ' + estado.substituiu + ')');
+    linhas.push(C.evento.igreja);
     if (datas.length) linhas.push(periodoTexto());
     linhas.push(
       '',
@@ -901,6 +1022,22 @@
     $('levar').hidden = !t.adultos;
   }
 
+  /* ---------- Navegação entre etapas ---------- */
+
+  // Etapas anteriores ficam clicáveis; durante o envio, nada muda de etapa
+  function atualizarNavegacao() {
+    const n = estado.etapa;
+    document.querySelectorAll('.etapa-botao').forEach((b) => {
+      b.disabled = enviando || Number(b.dataset.etapa) >= n;
+    });
+    const voltar = $('voltar-etapa');
+    voltar.hidden = n === 1;
+    voltar.disabled = enviando;
+    if (VOLTAR_PARA[n]) $('voltar-etapa-texto').textContent = VOLTAR_PARA[n];
+    $('voltar').disabled = enviando;
+    $('desfazer').disabled = enviando;
+  }
+
   function mostrarEtapa(n, rolar) {
     estado.etapa = n;
     if (n === 2) renderConfirmacao();
@@ -910,7 +1047,14 @@
       if (i === n) $('etapa-ind-' + i).setAttribute('aria-current', 'step');
       else $('etapa-ind-' + i).removeAttribute('aria-current');
     });
+    const aviso = $('aviso-correcao');
+    aviso.hidden = !(n === 1 && estado.enviada);
+    if (estado.enviada) {
+      aviso.textContent = 'Esta inscrição já está registrada (código ' + estado.codigo + '). ' +
+        'Se mudar algo, toque em Continuar e envie a correção.';
+    }
     $('ir-inscricao').textContent = estado.enviada ? 'Ver minha inscrição' : 'Fazer inscrição';
+    atualizarNavegacao();
     atualizarBarra();
     salvar();
     if (rolar) {
@@ -1024,8 +1168,19 @@
     ).observe($('inscricao'));
   }
 
-  $('confirmar').addEventListener('click', confirmarInscricao);
+  // Voltar: pelo botão do topo, pelas etapas já feitas ou por "Voltar e corrigir"
+  $('voltar-etapa').addEventListener('click', () => {
+    if (estado.etapa > 1) mostrarEtapa(estado.etapa - 1, true);
+  });
+  document.querySelectorAll('.etapa-botao').forEach((b) => {
+    b.addEventListener('click', () => {
+      const alvo = Number(b.dataset.etapa);
+      if (alvo < estado.etapa) mostrarEtapa(alvo, true);
+    });
+  });
   $('voltar').addEventListener('click', () => mostrarEtapa(1, true));
+  $('desfazer').addEventListener('click', desfazerAlteracoes);
+  $('confirmar').addEventListener('click', confirmarInscricao);
 
   emDoisToques($('nova'), 'Toque de novo para começar outra', () => {
     estado = estadoInicial();
@@ -1072,9 +1227,10 @@
   montarFotos();
   iniciarFormulario();
 
-  // Quem saiu para o app do banco e voltou encontra a inscrição onde deixou
+  // Quem saiu para o app do banco e voltou encontra a inscrição onde deixou.
+  // Se mudou algo depois de registrar e não enviou a correção, volta para a confirmação.
   let etapaInicial = 1;
-  if (estado.enviada) etapaInicial = 3;
+  if (estado.enviada) etapaInicial = !alterada() ? 3 : problemas().length ? 1 : 2;
   else if (estado.etapa === 2 && !problemas().length) etapaInicial = 2;
   mostrarEtapa(etapaInicial, false);
 })();

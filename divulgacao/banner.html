@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Banner · Confraternização 2026 · IAP Poço</title>
+  <!--
+    Modelo dos banners de divulgação. Abra com ?formato=quadrado, ?formato=status ou ?formato=link.
+    As imagens prontas ficam nesta pasta (banner-quadrado.png e banner-status.png)
+    e em site/compartilhar.jpg (prévia do link no WhatsApp).
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@500;600;700&display=swap">
+  <style>
+    :root {
+      /* Layout: foto do local em cima com o nome do evento; faixa azul embaixo com datas,
+         valores e o chamado para a inscrição (com QR Code). */
+      --azul: #1747a6;
+      --azul-forte: #10357a;
+      --azul-suave: #b9cdf2;
+      --azul-claro: #e6eefb;
+      --branco: #ffffff;
+      --fonte-titulo: 'Bricolage Grotesque', 'Trebuchet MS', sans-serif;
+      --fonte-texto: 'Figtree', 'Segoe UI', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--azul-forte); }
+    body { font-family: var(--fonte-texto); color: var(--branco); }
+
+    .banner {
+      position: relative;
+      overflow: hidden;
+      width: var(--largura);
+      height: var(--altura);
+      display: grid;
+      background: var(--azul-forte);
+    }
+
+    /* ---- Foto com o nome do evento ---- */
+    .foto { position: relative; overflow: hidden; }
+    .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .foto::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgb(16 53 122 / 0) 30%, rgb(16 53 122 / 0.78) 68%, var(--azul-forte) 100%);
+    }
+    .titulo {
+      position: absolute;
+      z-index: 1;
+      left: var(--margem);
+      right: var(--margem);
+      bottom: var(--titulo-base);
+      display: flex;
+      flex-direction: column;
+      gap: calc(var(--escala) * 10px);
+    }
+    .igreja {
+      font-size: calc(var(--escala) * 26px);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--azul-claro);
+      text-shadow: 0 1px 8px rgb(0 0 0 / 0.35);
+    }
+    h1 {
+      font-family: var(--fonte-titulo);
+      font-weight: 800;
+      font-size: calc(var(--escala) * 100px);
+      line-height: 0.95;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      text-shadow: 0 2px 18px rgb(0 0 0 / 0.3);
+    }
+
+    /* ---- Faixa azul ---- */
+    .faixa {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: calc(var(--escala) * 26px);
+      padding: calc(var(--escala) * 34px) var(--margem) calc(var(--escala) * 56px);
+    }
+    .datas { display: flex; align-items: flex-end; gap: calc(var(--escala) * 22px); }
+    .dias { display: flex; gap: calc(var(--escala) * 12px); list-style: none; }
+    .dia {
+      width: calc(var(--escala) * 116px);
+      overflow: hidden;
+      text-align: center;
+      background: var(--branco);
+      border-radius: calc(var(--escala) * 14px);
+      box-shadow: 0 calc(var(--escala) * 6px) 0 rgb(4 16 40 / 0.35);
+    }
+    .dia-semana {
+      display: block;
+      padding: calc(var(--escala) * 8px) 0 calc(var(--escala) * 6px);
+      background: var(--azul-claro);
+      color: var(--azul);
+      font-size: calc(var(--escala) * 22px);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .dia-numero {
+      display: block;
+      padding: calc(var(--escala) * 6px) 0 calc(var(--escala) * 12px);
+      color: var(--azul-forte);
+      font-family: var(--fonte-titulo);
+      font-weight: 800;
+      font-size: calc(var(--escala) * 58px);
+      line-height: 1;
+    }
+    .mes {
+      font-family: var(--fonte-titulo);
+      font-weight: 600;
+      font-size: calc(var(--escala) * 40px);
+      line-height: 1.1;
+      padding-bottom: calc(var(--escala) * 10px);
+    }
+    .valores { display: flex; flex-direction: column; gap: calc(var(--escala) * 6px); }
+    .valor { font-size: calc(var(--escala) * 34px); font-weight: 600; line-height: 1.2; }
+    .valor strong { font-weight: 700; }
+    .gratis { font-size: calc(var(--escala) * 28px); font-weight: 500; color: var(--azul-suave); }
+
+    .chamada {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: calc(var(--escala) * 24px);
+      padding: calc(var(--escala) * 18px) calc(var(--escala) * 18px) calc(var(--escala) * 18px) calc(var(--escala) * 32px);
+      border-radius: calc(var(--escala) * 22px);
+      background: var(--branco);
+      color: var(--azul-forte);
+    }
+    .chamada-texto { display: flex; flex-direction: column; gap: calc(var(--escala) * 6px); min-width: 0; }
+    .chamada-titulo {
+      font-family: var(--fonte-titulo);
+      font-weight: 800;
+      font-size: calc(var(--escala) * 40px);
+      line-height: 1.05;
+    }
+    .chamada-link { font-size: calc(var(--escala) * 25px); font-weight: 700; color: var(--azul); }
+    .qr { flex: none; width: calc(var(--escala) * 132px); }
+    .qr svg { display: block; width: 100%; height: auto; }
+
+    /* ---- Formatos ---- */
+    body.quadrado { --largura: 1080px; --altura: 1080px; --escala: 1; --margem: 72px; --titulo-base: 30px; }
+    .quadrado .banner { grid-template-rows: 540px 1fr; }
+
+    body.status { --largura: 1080px; --altura: 1920px; --escala: 1.3; --margem: 80px; --titulo-base: 44px; }
+    .status .banner { grid-template-rows: 900px 1fr; }
+    .status .faixa { padding-top: 48px; padding-bottom: 96px; gap: 28px; }
+    .status .chamada { flex-direction: column; align-items: center; text-align: center; gap: 22px; padding: 40px 40px 36px; }
+    .status .chamada-titulo { font-size: 64px; }
+    .status .chamada-link { font-size: 34px; }
+    .status .qr { width: 290px; order: 2; }
+    .status .chamada-texto { align-items: center; }
+
+    body.link { --largura: 1200px; --altura: 630px; --escala: 0.72; --margem: 56px; --titulo-base: 0px; }
+    .link .banner { grid-template-columns: 640px 1fr; grid-template-rows: 1fr; }
+    .link .foto { order: 2; }
+    .link .foto::after { background: linear-gradient(90deg, var(--azul-forte) 0%, rgb(16 53 122 / 0) 22%); }
+    .link .titulo { position: static; margin-bottom: 4px; }
+    .link h1 { font-size: 74px; }
+    .link .igreja { font-size: 19px; text-shadow: none; }
+    .link .faixa { justify-content: center; gap: 22px; padding: 48px var(--margem); }
+    .link .valores, .link .qr, .link .chamada-link { display: none; }
+    .link .chamada { align-self: flex-start; padding: 14px 26px; border-radius: 999px; }
+    .link .chamada-titulo { font-size: 30px; }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <div class="foto">
+      <img id="foto" src="../site/fotos/foto-1.jpg" alt="">
+    </div>
+    <div class="faixa">
+      <div class="titulo" id="titulo">
+        <p class="igreja">Igreja Adventista da Promessa – Poço</p>
+        <h1>Confraternização<br>2026</h1>
+      </div>
+      <div class="datas">
+        <ol class="dias">
+          <li class="dia"><span class="dia-semana">sex</span><span class="dia-numero">11</span></li>
+          <li class="dia"><span class="dia-semana">sáb</span><span class="dia-numero">12</span></li>
+          <li class="dia"><span class="dia-semana">dom</span><span class="dia-numero">13</span></li>
+        </ol>
+        <p class="mes">de dezembro</p>
+      </div>
+      <div class="valores">
+        <p class="valor"><strong>R$ 50,00</strong> por adulto + <strong>1 kg</strong> de alimento</p>
+        <p class="gratis">Menores de 15 anos não pagam</p>
+      </div>
+      <div class="chamada">
+        <div class="chamada-texto">
+          <p class="chamada-titulo">Inscrições abertas</p>
+          <p class="chamada-link">inscricao-confra-2026.vercel.app</p>
+        </div>
+        <div class="qr" id="qr"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../site/vendor/qrcode.min.js"></script>
+  <script>
+    (function () {
+      const formato = new URLSearchParams(location.search).get('formato') || 'quadrado';
+      document.body.className = formato;
+
+      // No quadrado e no status, o nome do evento fica sobre a foto
+      if (formato !== 'link') document.querySelector('.foto').append(document.getElementById('titulo'));
+
+      const qr = window.qrcode(0, 'M');
+      qr.addData('https://inscricao-confra-2026.vercel.app');
+      qr.make();
+      const n = qr.getModuleCount();
+      const m = 2;
+      let d = '';
+      for (let l = 0; l < n; l++) {
+        for (let c = 0; c < n; c++) if (qr.isDark(l, c)) d += 'M' + (c + m) + ' ' + (l + m) + 'h1v1h-1z';
+      }
+      document.getElementById('qr').innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + (n + 2 * m) + ' ' + (n + 2 * m) +
+        '" shape-rendering="crispEdges"><rect width="100%" height="100%" fill="#fff"/><path d="' + d + '" fill="#10357a"/></svg>';
+
+      const foto = document.getElementById('foto');
+      const fotoPronta = foto.complete ? Promise.resolve() : new Promise((r) => { foto.onload = r; foto.onerror = r; });
+      // O título diminui até caber na largura (cada formato tem um espaço diferente)
+      function caber(el) {
+        let tamanho = parseFloat(getComputedStyle(el).fontSize);
+        while (el.scrollWidth > el.clientWidth + 1 && tamanho > 24) {
+          tamanho -= 2;
+          el.style.fontSize = tamanho + 'px';
+        }
+      }
+
+      Promise.all([document.fonts.ready, fotoPronta]).then(() => {
+        caber(document.querySelector('h1'));
+        document.body.dataset.pronto = '1';
+      });
+    })();
+  </script>
+</body>
+</html>

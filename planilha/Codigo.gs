@@ -4,6 +4,7 @@
 /**
  * INSCRIÇÕES DA CONFRATERNIZAÇÃO
  * Recebe as inscrições feitas na página e grava nesta planilha.
+ * Quando a pessoa corrige uma inscrição já enviada, a inscrição antiga sai e a nova entra.
  *
  * COMO ATIVAR (uma vez só, leva uns 5 minutos):
  *  1. Na planilha, abra o menu Extensões › Apps Script.
@@ -51,6 +52,9 @@ function doPost(e) {
       .findNext();
     if (jaGravada) return responder({ ok: true, codigo: dados.codigo, repetida: true });
 
+    // Correção: as versões anteriores desta inscrição saem antes de gravar a nova
+    const anteriores = removerInscricoes(planilha, dados.substitui);
+
     const agora = new Date();
     inscricoes.appendRow([
       agora,
@@ -62,7 +66,7 @@ function doPost(e) {
       dados.menores,
       dados.total,
       comoTexto(dados.alimentos),
-      dados.total > 0 ? 'Aguardando' : 'Isento',
+      situacaoDoPagamento(dados.total, anteriores),
     ]);
 
     const linhas = dados.pessoas.map((p) => [
@@ -116,8 +120,15 @@ function lerInscricao(e) {
   const responsavel = limpar(d.responsavel, 80);
   if (responsavel.length < 2) throw new Error('Falta o nome de quem fez a inscrição.');
 
+  // Códigos das versões anteriores, quando a inscrição é uma correção
+  const substitui = (Array.isArray(d.substitui) ? d.substitui : [])
+    .map((c) => String(c || '').toUpperCase())
+    .filter((c) => /^[A-Z0-9]{6}$/.test(c) && c !== codigo)
+    .slice(0, 10);
+
   return {
     codigo: codigo,
+    substitui: substitui,
     responsavel: responsavel,
     whatsapp: limpar(d.whatsapp, 20),
     total: numero(d.total, 0, 100000),
@@ -141,6 +152,35 @@ function numero(valor, minimo, maximo) {
 // O apóstrofo faz a planilha guardar exatamente o texto digitado: nada vira fórmula, data ou número
 function comoTexto(texto) {
   return texto ? "'" + texto : '';
+}
+
+// Apaga as linhas das inscrições com esses códigos e devolve como estava o pagamento delas
+function removerInscricoes(planilha, codigos) {
+  const anteriores = [];
+  if (!codigos.length) return anteriores;
+  [ABA_INSCRICOES, ABA_PARTICIPANTES].forEach((nome) => {
+    const aba = planilha.getSheetByName(nome);
+    if (!aba || aba.getLastRow() < 2) return;
+    const linhas = aba.getRange(2, 1, aba.getLastRow() - 1, aba.getLastColumn()).getValues();
+    // De baixo para cima, para os números das linhas não mudarem durante a remoção
+    for (let i = linhas.length - 1; i >= 0; i--) {
+      if (codigos.indexOf(String(linhas[i][1])) === -1) continue;
+      if (nome === ABA_INSCRICOES) {
+        anteriores.push({ pagamento: String(linhas[i][9]), total: Number(linhas[i][7]) });
+      }
+      aba.deleteRow(i + 2);
+    }
+  });
+  return anteriores;
+}
+
+// Correção de inscrição já paga: se o valor não mudou, continua "Pago"; se mudou, a tesouraria confere
+function situacaoDoPagamento(total, anteriores) {
+  const pagas = anteriores.filter((a) => a.pagamento === 'Pago' || a.pagamento === 'Conferir');
+  if (pagas.length) {
+    return pagas.every((a) => a.pagamento === 'Pago' && a.total === total) ? 'Pago' : 'Conferir';
+  }
+  return total > 0 ? 'Aguardando' : 'Isento';
 }
 
 function pegarAba(planilha, nome, colunas) {

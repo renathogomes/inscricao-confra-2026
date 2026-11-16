@@ -6,6 +6,7 @@
   --azul-noite: #0a2350; /* barra do total */
   --azul-suave: #b9cdf2; /* texto secundário sobre o azul */
   --azul-claro: #e6eefb; /* fundos de destaque */
+  --azul-claro-forte: #d3e1f8; /* destaque tocado */
   --azul-nevoa: #f2f6fd; /* fundo leve ao tocar ou passar o mouse */
   --branco: #ffffff;
   --fundo: #f6f8fc;
@@ -445,27 +446,84 @@ main {
   }
 }
 
-/* ---------- Etapas ---------- */
+/* ---------- Navegação e etapas ---------- */
+
+.secao-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* "Início" e "Voltar": texto sublinhado com seta, como os outros botões de texto */
+.link-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.link-nav svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.botao-voltar {
+  align-self: flex-start;
+  margin-block: -6px;
+  margin-left: -4px;
+}
 
 .etapas {
   display: flex;
   gap: 6px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--tinta-suave);
 }
 
 .etapas li {
   flex: 1;
   min-width: 0;
   display: flex;
+}
+
+.etapa-botao {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px;
+  border: 0;
   border-radius: 12px;
+  background: var(--neutro);
+  color: var(--tinta-suave);
+  font: inherit;
   line-height: 1.2;
   white-space: nowrap;
-  background: var(--neutro);
+  text-align: left;
+  cursor: pointer;
+}
+
+.etapa-botao:disabled {
+  cursor: default;
+}
+
+/* Etapa já feita: dá para voltar tocando nela */
+.etapa-botao:enabled {
+  background: var(--azul-claro);
+  color: var(--azul-forte);
+}
+
+.etapa-botao:enabled:hover,
+.etapa-botao:enabled:active {
+  background: var(--azul-claro-forte);
 }
 
 .etapas .num {
@@ -479,7 +537,7 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
-.etapas [aria-current='step'] {
+.etapas [aria-current='step'] .etapa-botao {
   background: var(--azul);
   color: var(--branco);
 }
@@ -493,7 +551,7 @@ main {
   .etapas .num {
     display: none;
   }
-  .etapas li {
+  .etapa-botao {
     justify-content: center;
   }
 }
@@ -1141,6 +1199,11 @@ pre.codigo {
 .aviso-erro {
   background: var(--erro-fundo);
   color: var(--erro);
+}
+
+.aviso-info {
+  background: var(--azul-claro);
+  color: var(--azul-forte);
 }
 
 /* ---------- Envio ---------- */

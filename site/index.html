@@ -14,10 +14,11 @@
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:url" content="https://inscricao-confra-2026.vercel.app/">
-  <meta property="og:image" content="https://inscricao-confra-2026.vercel.app/fotos/foto-1.jpg">
-  <meta property="og:image:width" content="1024">
-  <meta property="og:image:height" content="576">
-  <meta property="og:image:alt" content="Área verde e piscina do local da confraternização">
+  <meta property="og:image" content="https://inscricao-confra-2026.vercel.app/compartilhar.jpg">
+  <meta property="og:image:type" content="image/jpeg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Confraternização 2026 da IAP Poço, 11, 12 e 13 de dezembro. Inscrições abertas.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#10357a">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2310357a'/%3E%3Crect x='14' y='17' width='36' height='33' rx='5' fill='%23fff'/%3E%3Crect x='14' y='17' width='36' height='10' rx='4' fill='%23b9cdf2'/%3E%3Crect x='22' y='11' width='5' height='11' rx='2.5' fill='%23fff'/%3E%3Crect x='37' y='11' width='5' height='11' rx='2.5' fill='%23fff'/%3E%3C/svg%3E">
@@ -27,7 +28,7 @@
   <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-  <header class="topo">
+  <header class="topo" id="topo">
     <div class="dentro">
       <p class="topo-igreja" id="topo-igreja">Igreja Adventista da Promessa – Poço</p>
       <h1 id="topo-nome">Confraternização 2026</h1>
@@ -58,16 +59,29 @@
     </section>
 
     <section class="secao" id="inscricao" aria-labelledby="titulo-inscricao">
-      <h2 class="secao-titulo" id="titulo-inscricao" tabindex="-1">Inscrição</h2>
+      <div class="secao-cabecalho">
+        <h2 class="secao-titulo" id="titulo-inscricao" tabindex="-1">Inscrição</h2>
+        <a class="botao-texto link-nav" href="#topo" id="ir-inicio">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>
+          Início
+        </a>
+      </div>
 
+      <!-- Etapas anteriores são clicáveis; para avançar, usa-se o botão de cada etapa -->
       <ol class="etapas" aria-label="Etapas da inscrição">
-        <li id="etapa-ind-1" aria-current="step"><span class="num">1</span> Pessoas</li>
-        <li id="etapa-ind-2"><span class="num">2</span> Confirmar</li>
-        <li id="etapa-ind-3"><span class="num">3</span> Pagar</li>
+        <li id="etapa-ind-1" aria-current="step"><button type="button" class="etapa-botao" data-etapa="1" disabled><span class="num">1</span> Pessoas</button></li>
+        <li id="etapa-ind-2"><button type="button" class="etapa-botao" data-etapa="2" disabled><span class="num">2</span> Confirmar</button></li>
+        <li id="etapa-ind-3"><button type="button" class="etapa-botao" data-etapa="3" disabled><span class="num">3</span> Pagar</button></li>
       </ol>
+
+      <button type="button" class="botao-texto link-nav botao-voltar" id="voltar-etapa" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        <span id="voltar-etapa-texto">Voltar</span>
+      </button>
 
       <!-- Etapa 1: quem vai -->
       <form id="etapa-1" class="secao" novalidate>
+        <p class="aviso aviso-info" id="aviso-correcao" hidden></p>
         <p class="apoio">
           Preencha os dados de cada pessoa que vai participar. Você pode inscrever outras pessoas,
           mesmo que você não vá. Para bebês com menos de 1 ano, coloque 0 na idade.
@@ -96,7 +110,7 @@
 
       <!-- Etapa 2: conferir e confirmar -->
       <div id="etapa-2" class="secao" hidden>
-        <p class="apoio">Confira os dados. Depois de confirmar, aparece o Pix para o pagamento.</p>
+        <p class="apoio" id="confirmar-intro">Confira os dados. Depois de confirmar, aparece o Pix para o pagamento.</p>
         <div class="resumo">
           <ol id="resumo-lista"></ol>
           <div class="resumo-total">
@@ -110,6 +124,7 @@
         <button type="button" class="botao botao-largo" id="confirmar">Confirmar inscrição</button>
         <div class="acoes">
           <button type="button" class="botao-texto" id="voltar">Voltar e corrigir</button>
+          <button type="button" class="botao-texto" id="desfazer" hidden>Desfazer alterações</button>
         </div>
       </div>
 
@@ -122,7 +137,7 @@
           </p>
           <p class="confirmado-codigo">Código da inscrição <strong class="codigo-inscricao" id="codigo-inscricao"></strong></p>
           <p class="confirmado-texto" id="confirmado-texto"></p>
-          <p class="confirmado-nota">Precisa corrigir algum dado? Fale com a organização e informe o código.</p>
+          <p class="confirmado-nota">Precisa corrigir algum dado? Toque em “Pessoas”, lá em cima, altere e envie a correção.</p>
         </div>
 
         <div class="pix" id="pix" hidden>
