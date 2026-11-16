@@ -38,14 +38,14 @@ window.CONFRA = {
    * e não mostra QR Code.
    */
   pix: {
-    chave: '', // telefone com DDD, CPF, CNPJ, e-mail ou chave aleatória
-    tipo: '', // opcional: 'telefone', 'cpf', 'cnpj', 'email' ou 'aleatoria' (se vazio, a página deduz)
+    chave: '04193719588', // telefone com DDD, CPF, CNPJ, e-mail ou chave aleatória
+    tipo: 'cpf', // opcional: 'telefone', 'cpf', 'cnpj', 'email' ou 'aleatoria' (se vazio, a página deduz)
     favorecido: '', // nome de quem recebe, como aparece no banco
     cidade: '', // cidade da conta
   },
 
   // WhatsApp que recebe os comprovantes, com DDD. Ex.: '82999998888'
-  whatsapp: '',
+  whatsapp: '82987414241',
 
   /*
    * Endereço que grava as inscrições na planilha do Google (termina em /exec).
