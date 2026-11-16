@@ -19,32 +19,21 @@ window.CONFRA = {
   idadeAdulto: 15, // paga quem tem esta idade ou mais
 
   /*
-   * Alimento que cada adulto leva. A página sorteia um item da lista para cada adulto
-   * e, dentro da mesma inscrição, evita repetir.
-   *
-   * As quantidades fazem cada pessoa gastar mais ou menos o mesmo, perto de R$ 10.
-   * A conta usa o preço mediano da pesquisa do Procon Maceió de 6 e 7 de outubro de 2026
-   * (9 mercados) e está no comentário de cada linha.
-   *
+   * ALIMENTO
+   * Cada adulto leva 1 kg de alimento. Enquanto a lista "alimentos" estiver vazia,
+   * a página só mostra este aviso e não diz qual alimento cada pessoa leva.
+   */
+  avisoAlimento: 'Quais alimentos levar, a organização vai avisar depois.',
+
+  /*
+   * Quando a organização decidir os alimentos, dá para preencher a lista. A página volta
+   * a sortear um item para cada adulto, sem repetir dentro da mesma inscrição. Exemplo:
+   *   { nome: 'arroz', quantidade: 2, unidade: 'kg', proporcao: 3 },
    * quantidade + unidade: o que a pessoa leva. A unidade pode ser 'kg', 'g', 'L', 'ml'
    *   ou uma palavra no singular, como 'pacote', 'dúzia' ou 'garrafa' (o plural sai sozinho).
    * proporcao: quantas vezes o item sai em relação aos outros (3 sai três vezes mais que 1).
-   *
-   * Deixe a lista vazia ([]) para pedir apenas "1 kg de alimento não perecível".
    */
-  alimentos: [
-    { nome: 'arroz', quantidade: 2, unidade: 'kg', proporcao: 3 }, // 2 × R$ 5,49 = R$ 10,98
-    { nome: 'feijão', quantidade: 1, unidade: 'kg', proporcao: 3 }, // R$ 8,49
-    { nome: 'frango', quantidade: 1, unidade: 'kg', proporcao: 3 }, // R$ 13,98 (frango inteiro)
-    { nome: 'carne', quantidade: 250, unidade: 'g', proporcao: 3 }, // R$ 45,90 o kg (coxão mole) = R$ 11,48
-    { nome: 'macarrão', quantidade: 4, unidade: 'pacote', proporcao: 2 }, // 4 × R$ 2,62 (400 g) = R$ 10,48
-    { nome: 'flocão de milho (cuscuz)', quantidade: 3, unidade: 'kg', proporcao: 2 }, // 6 × R$ 1,79 (500 g) = R$ 10,74
-    { nome: 'leite', quantidade: 1, unidade: 'L', proporcao: 2 }, // R$ 7,99
-    { nome: 'ovos', quantidade: 1, unidade: 'dúzia', proporcao: 2 }, // R$ 18,86 a cartela de 30 = R$ 7,54 a dúzia
-    { nome: 'óleo (900 ml)', quantidade: 1, unidade: 'garrafa', proporcao: 2 }, // R$ 8,98
-    { nome: 'açúcar', quantidade: 3, unidade: 'kg', proporcao: 1 }, // 3 × R$ 3,49 = R$ 10,47
-    { nome: 'farinha', quantidade: 2, unidade: 'kg', proporcao: 1 }, // 2 × R$ 6,32 (mandioca) = R$ 12,64
-  ],
+  alimentos: [],
 
   /*
    * Pix que recebe as inscrições.

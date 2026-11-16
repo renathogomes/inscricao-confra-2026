@@ -237,11 +237,13 @@
     return plural(i, 'ano', 'anos');
   }
 
-  // Usado quando a lista de alimentos do config.js está vazia
-  const ALIMENTO_GENERICO = { nome: 'alimento não perecível', quantidade: 1, unidade: 'kg' };
+  // Usado quando a lista de alimentos do config.js está vazia: só "1 kg de alimento" e o aviso
+  const ALIMENTO_GENERICO = { nome: 'alimento', quantidade: 1, unidade: 'kg' };
   const UNIDADES_ABREVIADAS = { kg: 'kg', g: 'g', l: 'L', ml: 'ml' };
 
   const listaAlimentos = () => (C.alimentos || []).filter((a) => a && a.nome);
+  const sorteiaAlimentos = () => listaAlimentos().length > 0;
+  const avisoAlimento = () => String(C.avisoAlimento || '').trim();
   const itemDe = (p) => listaAlimentos().find((a) => a.nome === p.alimento) || ALIMENTO_GENERICO;
 
   /* "2 kg de arroz", "1 dúzia de ovos", "4 pacotes de macarrão".
@@ -393,10 +395,10 @@
     regra.append(
       elTexto('strong', '', brl(C.valorAdulto) + ' por adulto'),
       ' (' + C.idadeAdulto + ' anos ou mais) e ',
-      ...(listaAlimentos().length
-        ? [elTexto('strong', '', 'um alimento'), ' para a cozinha (a inscrição mostra qual e quanto)']
-        : [elTexto('strong', '', quantidadeTexto(ALIMENTO_GENERICO, 1))]),
-      '. Menores de ' + C.idadeAdulto + ' anos não pagam.'
+      ...(sorteiaAlimentos()
+        ? [elTexto('strong', '', 'um alimento'), ' para a cozinha (a inscrição mostra qual e quanto). ']
+        : [elTexto('strong', '', quantidadeTexto(ALIMENTO_GENERICO, 1)), '. ' + (avisoAlimento() ? avisoAlimento() + ' ' : '')]),
+      'Menores de ' + C.idadeAdulto + ' anos não pagam.'
     );
   }
 
@@ -534,7 +536,7 @@
       s.textContent = 'Informe a idade para calcular';
     } else if (i >= C.idadeAdulto) {
       s.dataset.tipo = 'adulto';
-      s.textContent = 'Adulto · ' + brl(C.valorAdulto) + ' + alimento';
+      s.textContent = 'Adulto · ' + brl(C.valorAdulto) + ' + ' + (sorteiaAlimentos() ? 'alimento' : quantidadeTexto(ALIMENTO_GENERICO, 1));
     } else {
       s.dataset.tipo = 'menor';
       s.textContent = 'Menor de ' + C.idadeAdulto + ' anos · não paga';
@@ -760,7 +762,7 @@
         elTexto('span', 'resumo-valor', ehAdulto(p) ? brl(C.valorAdulto) : 'Não paga'),
         elTexto('span', 'resumo-detalhe', idadeTexto(p) + ' · ' + igrejaTexto(p))
       );
-      if (ehAdulto(p)) li.append(elTexto('span', 'resumo-alimento', 'Leva ' + alimentoTexto(p)));
+      if (ehAdulto(p) && sorteiaAlimentos()) li.append(elTexto('span', 'resumo-alimento', 'Leva ' + alimentoTexto(p)));
       lista.append(li);
     });
 
@@ -791,14 +793,14 @@
       total: t.total,
       adultos: t.adultos,
       menores: t.menores,
-      alimentos: resumoAlimentos().map((a) => a.texto).join(', '),
+      alimentos: sorteiaAlimentos() ? resumoAlimentos().map((a) => a.texto).join(', ') : '',
       pessoas: estado.pessoas.map((p) => ({
         nome: p.nome.trim(),
         idade: idadeDe(p),
         adulto: ehAdulto(p),
         igreja: igrejaTexto(p),
         valor: ehAdulto(p) ? C.valorAdulto : 0,
-        alimento: ehAdulto(p) ? alimentoTexto(p) : '',
+        alimento: ehAdulto(p) && sorteiaAlimentos() ? alimentoTexto(p) : '',
       })),
     };
   }
@@ -938,7 +940,7 @@
       linhas.push('   ' + igrejaTexto(p));
       linhas.push(
         ehAdulto(p)
-          ? '   ' + brl(C.valorAdulto) + ' · leva ' + alimentoTexto(p)
+          ? '   ' + brl(C.valorAdulto) + (sorteiaAlimentos() ? ' · leva ' + alimentoTexto(p) : '')
           : '   Menor de ' + C.idadeAdulto + ' anos · não paga'
       );
     });
@@ -947,7 +949,7 @@
     if (t.adultos) gente.push(plural(t.adultos, 'adulto', 'adultos'));
     if (t.menores) gente.push(plural(t.menores, 'menor', 'menores') + ' de ' + C.idadeAdulto + ' anos');
     linhas.push('', '*Total: ' + brl(t.total) + '* (' + gente.join(', ') + ')');
-    if (t.adultos) linhas.push('Alimentos: ' + resumoAlimentos().map((a) => a.texto).join(', '));
+    if (t.adultos && sorteiaAlimentos()) linhas.push('Alimentos: ' + resumoAlimentos().map((a) => a.texto).join(', '));
     if (t.total > 0) linhas.push('', 'Segue o comprovante do Pix.');
     return linhas.join('\n');
   }
@@ -1041,14 +1043,19 @@
     $('enviar-texto').textContent = texto;
 
     // Alimentos somados, para a família saber o que separar
+    const sorteia = sorteiaAlimentos();
     const levar = $('levar-lista');
     levar.textContent = '';
-    resumoAlimentos().forEach((a) => {
+    (sorteia ? resumoAlimentos() : []).forEach((a) => {
       const li = document.createElement('li');
       li.append(elTexto('span', '', a.texto), elTexto('span', '', listaComE(a.quem)));
       levar.append(li);
     });
-    $('levar-nota').hidden = !listaAlimentos().length;
+    levar.hidden = !sorteia;
+    $('levar-nota').hidden = !sorteia;
+    $('levar-aviso').textContent =
+      'Cada adulto leva ' + quantidadeTexto(ALIMENTO_GENERICO, 1) + '.' + (avisoAlimento() ? ' ' + avisoAlimento() : '');
+    $('levar-aviso').hidden = sorteia;
     $('levar').hidden = !t.adultos;
   }
 
