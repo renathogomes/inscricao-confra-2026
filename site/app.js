@@ -1281,4 +1281,14 @@
   if (estado.enviada) etapaInicial = !alterada() ? 3 : problemas().length ? 1 : 2;
   else if (estado.etapa === 2 && !problemas().length) etapaInicial = 2;
   mostrarEtapa(etapaInicial, false);
+
+  // Inscrição já registrada e sem mudanças: confere com a planilha em segundo plano.
+  // Envia de novo com o mesmo código; a planilha ignora o que já tem e grava de novo o que foi apagado.
+  if (estado.enviada && !alterada() && planilhaConfigurada()) {
+    enviarParaPlanilha(dadosParaPlanilha(estado.codigo))
+      .then((r) => {
+        if (!r || r.ok !== true) throw new Error((r && r.erro) || 'resposta inesperada da planilha');
+      })
+      .catch((erro) => console.warn('Não foi possível conferir a inscrição na planilha:', erro));
+  }
 })();
