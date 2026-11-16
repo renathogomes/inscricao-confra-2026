@@ -45,7 +45,7 @@ window.CONFRA = {
   },
 
   // WhatsApp que recebe os comprovantes, com DDD. Ex.: '82999998888'
-  whatsapp: '82987414241',
+  whatsapp: '82987414251',
 
   /*
    * Endereço que grava as inscrições na planilha do Google (termina em /exec).
