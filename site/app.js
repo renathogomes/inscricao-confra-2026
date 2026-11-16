@@ -834,25 +834,28 @@
       validar();
       return;
     }
-    // Já registrada e sem mudanças: só mostra o pagamento
-    if (estado.enviada && !alterada()) {
-      mostrarEtapa(3, true);
-      return;
-    }
+    // Já registrada e sem mudanças: envia de novo com o mesmo código antes de mostrar o pagamento.
+    // Se a linha continua na planilha, nada muda; se alguém apagou a linha, ela volta.
+    const reenvio = estado.enviada && !alterada();
 
     // Os mesmos dados enviados de novo (a internet caiu) usam o mesmo código: a planilha não duplica.
     // Dados diferentes ganham código novo, e os códigos anteriores saem da planilha.
     const assinatura = assinaturaDe(estado);
     let codigo;
-    if (estado.ultima && estado.ultima.assinatura === assinatura) {
-      codigo = estado.ultima.codigo;
+    let substitui = [];
+    if (reenvio) {
+      codigo = estado.codigo;
     } else {
-      codigo = novoCodigo();
-      estado.ultima = { codigo: codigo, assinatura: assinatura };
-      estado.tentativas = estado.tentativas.concat(codigo).slice(-10);
+      if (estado.ultima && estado.ultima.assinatura === assinatura) {
+        codigo = estado.ultima.codigo;
+      } else {
+        codigo = novoCodigo();
+        estado.ultima = { codigo: codigo, assinatura: assinatura };
+        estado.tentativas = estado.tentativas.concat(codigo).slice(-10);
+      }
+      substitui = [estado.codigo].concat(estado.tentativas).filter((c) => c && c !== codigo);
+      salvar();
     }
-    const substitui = [estado.codigo].concat(estado.tentativas).filter((c) => c && c !== codigo);
-    salvar();
 
     const botao = $('confirmar');
     enviando = true;
@@ -869,17 +872,25 @@
       if (!resposta || resposta.ok !== true) {
         throw new Error((resposta && resposta.erro) || 'resposta inesperada da planilha');
       }
-      estado.substituiu = estado.enviada ? estado.codigo : '';
-      estado.codigo = codigo;
-      estado.enviada = true;
-      estado.assinatura = assinatura;
-      estado.registrado = copiaDosDados();
-      estado.ultima = null;
-      estado.tentativas = [];
+      if (!reenvio) {
+        estado.substituiu = estado.enviada ? estado.codigo : '';
+        estado.codigo = codigo;
+        estado.enviada = true;
+        estado.assinatura = assinatura;
+        estado.registrado = copiaDosDados();
+        estado.ultima = null;
+        estado.tentativas = [];
+      }
       enviando = false;
       mostrarEtapa(3, true);
     } catch (erro) {
       console.warn('Não foi possível enviar a inscrição:', erro);
+      if (reenvio) {
+        // Ela já foi gravada antes: a falha não impede de ver o pagamento
+        enviando = false;
+        mostrarEtapa(3, true);
+        return;
+      }
       $('envio-erro').textContent =
         navigator.onLine === false
           ? 'Sem conexão com a internet. Conecte-se e toque no botão de novo.'
