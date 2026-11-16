@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no">
+  <title>Inscrição · Confraternização 2026 · IAP Poço</title>
+  <meta name="description" content="Inscrição para a confraternização da Igreja Adventista da Promessa – Poço, nos dias 11, 12 e 13 de dezembro de 2026.">
+  <meta property="og:title" content="Confraternização 2026 · IAP Poço">
+  <meta property="og:description" content="11, 12 e 13 de dezembro. Faça aqui a sua inscrição e a da sua família.">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#10357a">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2310357a'/%3E%3Crect x='14' y='17' width='36' height='33' rx='5' fill='%23fff'/%3E%3Crect x='14' y='17' width='36' height='10' rx='4' fill='%23b9cdf2'/%3E%3Crect x='22' y='11' width='5' height='11' rx='2.5' fill='%23fff'/%3E%3Crect x='37' y='11' width='5' height='11' rx='2.5' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="dentro">
+      <p class="topo-igreja" id="topo-igreja">Igreja Adventista da Promessa – Poço</p>
+      <h1 id="topo-nome">Confraternização 2026</h1>
+      <div class="datas">
+        <ol class="dias" id="dias" aria-label="Dias do evento">
+          <li class="dia"><span class="dia-semana">sex</span><span class="dia-numero">11</span></li>
+          <li class="dia"><span class="dia-semana">sáb</span><span class="dia-numero">12</span></li>
+          <li class="dia"><span class="dia-semana">dom</span><span class="dia-numero">13</span></li>
+        </ol>
+        <p class="datas-mes" id="datas-mes">de dezembro de 2026</p>
+      </div>
+      <p class="topo-local" id="topo-local" hidden></p>
+      <p class="topo-regra" id="topo-regra">
+        <strong>R$ 50,00 por adulto</strong> (15 anos ou mais) e <strong>1 kg de alimento</strong>.
+        Menores de 15 anos não pagam.
+      </p>
+      <a class="botao" id="ir-inscricao" href="#inscricao">Fazer inscrição</a>
+    </div>
+  </header>
+
+  <main class="dentro">
+    <section class="secao" id="secao-fotos" aria-labelledby="titulo-fotos" hidden>
+      <div class="secao-topo">
+        <h2 class="secao-titulo" id="titulo-fotos">O local</h2>
+        <p class="apoio">Toque em uma foto para ver em tamanho maior.</p>
+      </div>
+      <div class="fotos" id="fotos"></div>
+    </section>
+
+    <section class="secao" id="inscricao" aria-labelledby="titulo-inscricao">
+      <h2 class="secao-titulo" id="titulo-inscricao" tabindex="-1">Inscrição</h2>
+
+      <ol class="etapas" aria-label="Etapas da inscrição">
+        <li id="etapa-ind-1" aria-current="step"><span class="num">1</span> Pessoas</li>
+        <li id="etapa-ind-2"><span class="num">2</span> Confirmar</li>
+        <li id="etapa-ind-3"><span class="num">3</span> Pagar</li>
+      </ol>
+
+      <!-- Etapa 1: quem vai -->
+      <form id="etapa-1" class="secao" novalidate>
+        <p class="apoio">
+          Preencha os dados de cada pessoa que vai participar. Você pode inscrever outras pessoas,
+          mesmo que você não vá. Para bebês com menos de 1 ano, coloque 0 na idade.
+        </p>
+
+        <ol class="pessoas" id="pessoas"></ol>
+
+        <button type="button" class="adicionar" id="adicionar">+ Adicionar outra pessoa</button>
+
+        <div class="pessoa" role="group" aria-labelledby="titulo-responsavel">
+          <div class="pessoa-topo">
+            <h3 class="pessoa-titulo" id="titulo-responsavel">Quem está fazendo a inscrição</h3>
+          </div>
+          <div class="campo">
+            <label for="responsavel">Seu nome</label>
+            <input id="responsavel" type="text" autocomplete="name" autocapitalize="words" maxlength="80" enterkeyhint="next">
+            <p class="erro" id="responsavel-erro" hidden></p>
+          </div>
+          <div class="campo">
+            <label for="telefone">Seu WhatsApp, com DDD</label>
+            <input id="telefone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="16" placeholder="(00) 00000-0000" enterkeyhint="go">
+            <p class="erro" id="telefone-erro" hidden></p>
+          </div>
+        </div>
+      </form>
+
+      <!-- Etapa 2: conferir e confirmar -->
+      <div id="etapa-2" class="secao" hidden>
+        <p class="apoio">Confira os dados. Depois de confirmar, aparece o Pix para o pagamento.</p>
+        <div class="resumo">
+          <ol id="resumo-lista"></ol>
+          <div class="resumo-total">
+            <span class="resumo-total-rotulo">Total a pagar</span>
+            <span class="resumo-total-valor" id="resumo-total"></span>
+            <span class="resumo-total-detalhe" id="resumo-total-detalhe"></span>
+          </div>
+        </div>
+        <p class="resumo-contato" id="resumo-contato"></p>
+        <p class="aviso aviso-erro" id="envio-erro" role="alert" hidden></p>
+        <button type="button" class="botao botao-largo" id="confirmar">Confirmar inscrição</button>
+        <div class="acoes">
+          <button type="button" class="botao-texto" id="voltar">Voltar e corrigir</button>
+        </div>
+      </div>
+
+      <!-- Etapa 3: pagamento -->
+      <div id="etapa-3" class="secao" hidden>
+        <div class="confirmado" role="status">
+          <p class="confirmado-titulo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle class="icone-fundo" cx="12" cy="12" r="12"/><path class="icone-traco" d="M7 12.5l3.2 3.2L17 9"/></svg>
+            Inscrição recebida
+          </p>
+          <p class="confirmado-codigo">Código da inscrição <strong class="codigo-inscricao" id="codigo-inscricao"></strong></p>
+          <p class="confirmado-texto" id="confirmado-texto"></p>
+          <p class="confirmado-nota">Precisa corrigir algum dado? Fale com a organização e informe o código.</p>
+        </div>
+
+        <div class="pix" id="pix" hidden>
+          <h3>Pagamento por Pix</h3>
+          <p class="pix-valor" id="pix-valor"></p>
+
+          <p class="aviso" id="pix-pendente" hidden>
+            A chave Pix ainda não foi cadastrada nesta página. Combine o pagamento com a organização.
+          </p>
+
+          <div class="pix-corpo" id="pix-corpo">
+            <div class="pix-copiar">
+              <button type="button" class="botao botao-largo" id="copiar-codigo">Copiar código Pix</button>
+              <p class="pix-dica">No app do seu banco, escolha <strong>Pix Copia e Cola</strong> e cole o código.</p>
+              <p class="codigo" id="pix-codigo" aria-label="Código Pix copia e cola"></p>
+            </div>
+            <div class="pix-qr-bloco">
+              <p class="pix-rotulo">
+                <span class="so-celular">Vai pagar por outro aparelho? Use o QR Code</span>
+                <span class="so-computador">Escaneie com o app do banco</span>
+              </p>
+              <div class="pix-qr" id="pix-qr"></div>
+            </div>
+            <div class="pix-chave-bloco">
+              <p class="pix-rotulo" id="pix-chave-rotulo">Ou use a chave</p>
+              <div class="pix-chave">
+                <span class="pix-chave-valor" id="pix-chave"></span>
+                <button type="button" class="botao botao-claro" id="copiar-chave">Copiar chave</button>
+              </div>
+              <p class="apoio" id="pix-favorecido"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="enviar" id="enviar">
+          <h3 id="enviar-titulo">Envie o comprovante</h3>
+          <p class="apoio" id="enviar-texto"></p>
+          <a class="botao botao-largo" id="enviar-whatsapp" target="_blank" rel="noopener" hidden>Enviar comprovante pelo WhatsApp</a>
+          <button type="button" class="botao botao-claro botao-largo" id="copiar-resumo">Copiar resumo da inscrição</button>
+          <pre class="codigo" id="resumo-texto" aria-label="Resumo da inscrição" hidden></pre>
+        </div>
+
+        <div class="levar" id="levar" hidden>
+          <h3>Alimento para levar</h3>
+          <ul id="levar-lista"></ul>
+        </div>
+
+        <div class="acoes">
+          <button type="button" class="botao-texto" id="nova">Fazer outra inscrição</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rodape">
+    <div class="dentro" id="rodape-texto">Igreja Adventista da Promessa – Poço</div>
+  </footer>
+
+  <!-- Barra fixa com o total (etapa 1) -->
+  <div class="barra fora" id="barra">
+    <div class="dentro">
+      <div class="barra-texto" aria-live="polite">
+        <span class="barra-total" id="barra-total">R$ 0,00</span>
+        <span class="barra-detalhe" id="barra-detalhe">Informe as idades para calcular</span>
+      </div>
+      <button type="submit" form="etapa-1" class="botao" id="continuar">Continuar</button>
+    </div>
+  </div>
+
+  <!-- Fotos em tela cheia -->
+  <dialog class="visor" id="visor" aria-label="Fotos do local">
+    <figure class="visor-foto">
+      <img id="visor-img" alt="">
+      <figcaption id="visor-legenda"></figcaption>
+    </figure>
+    <button type="button" class="visor-botao visor-fechar" id="visor-fechar" aria-label="Fechar fotos">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <button type="button" class="visor-botao visor-ant" id="visor-ant" aria-label="Foto anterior">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <button type="button" class="visor-botao visor-prox" id="visor-prox" aria-label="Próxima foto">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </dialog>
+
+  <script src="vendor/qrcode.min.js"></script>
+  <script src="config.js"></script>
+  <script src="pix.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
