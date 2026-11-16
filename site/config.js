@@ -38,8 +38,8 @@ window.CONFRA = {
    * e não mostra QR Code.
    */
   pix: {
-    chave: '04193719588', // telefone com DDD, CPF, CNPJ, e-mail ou chave aleatória
-    tipo: 'cpf', // opcional: 'telefone', 'cpf', 'cnpj', 'email' ou 'aleatoria' (se vazio, a página deduz)
+    chave: 'acf3f3ea-37cc-4de8-a2c3-c09e1cd9ef86', // telefone com DDD, CPF, CNPJ, e-mail ou chave aleatória
+    tipo: 'aleatoria', // opcional: 'telefone', 'cpf', 'cnpj', 'email' ou 'aleatoria' (se vazio, a página deduz)
     favorecido: '', // nome de quem recebe, como aparece no banco
     cidade: '', // cidade da conta
   },
