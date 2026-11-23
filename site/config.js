@@ -14,16 +14,27 @@ window.CONFRA = {
     local: '',
   },
 
-  // Regras de valor
-  valorAdulto: 50, // R$ por adulto
+  /*
+   * VALOR POR ADULTO
+   * O valor depende do dia da inscrição, no horário de Maceió.
+   * "ate" é o último dia daquele valor (ano-mês-dia) e vale até 23h59.
+   * Depois do último dia, as inscrições ficam encerradas.
+   * Quem já está inscrito continua com o valor do dia em que se inscreveu, mesmo se
+   * corrigir a inscrição depois. Só quem for acrescentado depois paga o valor novo.
+   */
+  lotes: [
+    { valor: 50, ate: '2026-11-30' },
+    { valor: 100, ate: '2026-12-05' },
+  ],
   idadeAdulto: 15, // paga quem tem esta idade ou mais
 
   /*
    * ALIMENTO
-   * Cada adulto leva 1 kg de alimento. Enquanto a lista "alimentos" estiver vazia,
-   * a página só mostra este aviso e não diz qual alimento cada pessoa leva.
+   * Os alimentos são definidos depois que as inscrições encerrarem. Enquanto a lista
+   * "alimentos" estiver vazia, a página só mostra este aviso.
    */
-  avisoAlimento: 'Quais alimentos levar, a organização vai avisar depois.',
+  avisoAlimento:
+    'Depois que as inscrições encerrarem, a organização vai calcular os alimentos pelo número de pessoas e avisar o que cada um vai levar.',
 
   /*
    * Quando a organização decidir os alimentos, dá para preencher a lista. A página volta

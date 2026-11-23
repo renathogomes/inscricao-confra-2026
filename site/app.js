@@ -82,6 +82,77 @@
     return listaComE(datas.map((d) => String(d.getDate()))) + ' de ' + mesTexto + ' de ' + anoTexto;
   }
 
+  /* ---------- Prazos e valores ---------- */
+
+  // As datas do config.js valem até 23h59 no horário de Maceió (UTC−3, sem horário de verão)
+  const FUSO = '-03:00';
+  const LOTES = (Array.isArray(C.lotes) && C.lotes.length ? C.lotes : [{ valor: C.valorAdulto }]).map((l) => {
+    const ate = String((l && l.ate) || '').trim();
+    let fim = Infinity;
+    if (ate) {
+      fim = Date.parse(ate.indexOf('T') !== -1 ? ate : ate + 'T23:59:59.999' + FUSO);
+      if (isNaN(fim)) {
+        console.warn('config.js: data inválida em "lotes":', ate);
+        fim = Infinity;
+      }
+    }
+    return { valor: Number(l && l.valor) || 0, ate: ate.slice(0, 10), fim: fim };
+  });
+
+  // Relógio do servidor menos o do aparelho: celular com a hora errada não muda o valor nem o prazo
+  let diferencaRelogio = 0;
+  const agora = () => Date.now() + diferencaRelogio;
+
+  // Qual valor vale agora (posição em LOTES); -1 quando as inscrições já encerraram
+  const loteAtual = () => LOTES.findIndex((l) => agora() <= l.fim);
+  const encerradas = () => loteAtual() === -1;
+  const ultimoDia = () => LOTES[LOTES.length - 1].ate;
+
+  function partesData(iso) {
+    const n = String(iso).split('-').map(Number);
+    return { a: n[0], m: n[1], d: n[2] };
+  }
+  const diaTexto = (d) => (d === 1 ? '1º' : String(d));
+  const diaMes = (x) => diaTexto(x.d) + '/' + x.m;
+
+  function diaSeguinte(iso) {
+    const x = partesData(iso);
+    const d = new Date(Date.UTC(x.a, x.m - 1, x.d + 1));
+    return { a: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate() };
+  }
+
+  // "5 de dezembro"
+  function dataExtenso(iso) {
+    const x = partesData(iso);
+    return new Date(Date.UTC(x.a, x.m - 1, x.d)).toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      timeZone: 'UTC',
+    });
+  }
+
+  // "Até 30/11", "De 1º a 5/12"
+  function prazoTexto(i) {
+    const fim = LOTES[i].ate ? partesData(LOTES[i].ate) : null;
+    const inicio = i > 0 && LOTES[i - 1].ate ? diaSeguinte(LOTES[i - 1].ate) : null;
+    if (inicio && fim) return 'De ' + (inicio.m === fim.m ? diaTexto(inicio.d) : diaMes(inicio)) + ' a ' + diaMes(fim);
+    if (fim) return 'Até ' + diaMes(fim);
+    if (inicio) return 'A partir de ' + diaMes(inicio);
+    return 'Valor';
+  }
+
+  // Lê a hora do servidor do site (cabeçalho Date da resposta)
+  async function acertarRelogio() {
+    try {
+      const antes = Date.now();
+      const r = await fetch(location.pathname + '?relogio=' + antes, { method: 'HEAD', cache: 'no-store' });
+      const servidor = Date.parse(r.headers.get('date') || '');
+      if (!isNaN(servidor)) diferencaRelogio = servidor + 500 - (antes + Date.now()) / 2;
+    } catch (e) {
+      /* sem resposta: fica o relógio do aparelho */
+    }
+  }
+
   // (82) 99999-8888 enquanto a pessoa digita; aceita também +55 colado do preenchimento automático
   function formatarTelefone(valor) {
     let d = soDigitos(valor);
@@ -118,6 +189,7 @@
       igreja: 'poco',
       detalhe: '',
       alimento: null,
+      lote: null, // posição em LOTES do valor com que a pessoa foi registrada; null = ainda não foi
     };
   }
 
@@ -146,6 +218,7 @@
         igreja: IGREJAS.some((i) => p && i.id === p.igreja) ? p.igreja : 'poco',
         detalhe: String((p && p.detalhe) || '').slice(0, 80),
         alimento: p && typeof p.alimento === 'string' ? p.alimento : null,
+        lote: p && Number.isInteger(p.lote) && p.lote >= 0 ? p.lote : null,
       })
     );
   }
@@ -212,14 +285,27 @@
     return i !== null && i >= C.idadeAdulto;
   }
 
-  function totais() {
+  // Quem já está na planilha mantém o valor da época em que se inscreveu; quem é novo paga o valor de agora
+  const temLote = (p) => Number.isInteger(p.lote) && p.lote >= 0 && p.lote < LOTES.length;
+
+  function valorDe(p, loteAgora) {
+    if (!ehAdulto(p)) return 0;
+    if (temLote(p)) return LOTES[p.lote].valor;
+    const l = loteAgora === undefined ? loteAtual() : loteAgora;
+    return LOTES[l === -1 ? LOTES.length - 1 : l].valor;
+  }
+
+  function totais(loteAgora) {
     const comIdade = estado.pessoas.filter((p) => idadeDe(p) !== null);
-    const adultos = comIdade.filter(ehAdulto).length;
-    return {
-      adultos: adultos,
-      menores: comIdade.length - adultos,
-      total: adultos * C.valorAdulto,
-    };
+    const adultos = comIdade.filter(ehAdulto);
+    const porValor = new Map();
+    let total = 0;
+    adultos.forEach((p) => {
+      const v = valorDe(p, loteAgora);
+      porValor.set(v, (porValor.get(v) || 0) + 1);
+      total += v;
+    });
+    return { adultos: adultos.length, menores: comIdade.length - adultos.length, total: total, porValor: porValor };
   }
 
   const igrejaDe = (p) => IGREJAS.find((i) => i.id === p.igreja) || IGREJAS[0];
@@ -275,7 +361,10 @@
 
   function detalheTotal(t) {
     if (!t.adultos) return 'Só há menores de ' + C.idadeAdulto + ' anos nesta inscrição. Não há valor a pagar.';
-    let texto = plural(t.adultos, 'adulto', 'adultos') + ' × ' + brl(C.valorAdulto);
+    let texto = Array.from(t.porValor)
+      .sort((a, b) => a[0] - b[0])
+      .map((par) => plural(par[1], 'adulto', 'adultos') + ' × ' + brl(par[0]))
+      .join(' + ');
     if (t.menores) {
       texto += ' · ' + plural(t.menores, 'menor', 'menores') + ' de ' + C.idadeAdulto + ' anos ' +
         (t.menores === 1 ? 'não paga' : 'não pagam');
@@ -390,16 +479,56 @@
       $('topo-local').hidden = false;
     }
 
+    atualizarTopo();
+  }
+
+  // Valor de cada período (o de agora em destaque), prazo das inscrições e aviso dos alimentos
+  function atualizarTopo() {
+    const atual = loteAtual();
+    const lista = $('lotes');
+    lista.textContent = '';
+    LOTES.forEach((l, i) => {
+      const li = document.createElement('li');
+      li.className = 'lote' + (i === atual ? ' lote-atual' : i < atual ? ' lote-passado' : '');
+      const prazo = elTexto('span', 'lote-prazo', prazoTexto(i));
+      if (i === atual && LOTES.length > 1) prazo.append(elTexto('span', 'lote-tag', 'agora'));
+      li.append(prazo, elTexto('strong', 'lote-valor', brl(l.valor)));
+      lista.append(li);
+    });
+    lista.hidden = atual === -1;
+
     const regra = $('topo-regra');
     regra.textContent = '';
-    regra.append(
-      elTexto('strong', '', brl(C.valorAdulto) + ' por adulto'),
-      ' (' + C.idadeAdulto + ' anos ou mais) e ',
-      ...(sorteiaAlimentos()
-        ? [elTexto('strong', '', 'um alimento'), ' para a cozinha (a inscrição mostra qual e quanto). ']
-        : [elTexto('strong', '', quantidadeTexto(ALIMENTO_GENERICO, 1)), '. ' + (avisoAlimento() ? avisoAlimento() + ' ' : '')]),
-      'Menores de ' + C.idadeAdulto + ' anos não pagam.'
+    if (atual === -1) {
+      regra.append(
+        elTexto('strong', '', 'Inscrições encerradas.'),
+        ' As inscrições terminaram em ' + dataExtenso(ultimoDia()) + '.'
+      );
+    } else {
+      regra.append('Valor por adulto (' + C.idadeAdulto + ' anos ou mais). Menores de ' + C.idadeAdulto + ' anos não pagam.');
+      if (ultimoDia()) regra.append(' ', elTexto('strong', '', 'Inscrições até ' + dataExtenso(ultimoDia()) + '.'));
+      if (sorteiaAlimentos()) regra.append(' Cada adulto leva um alimento para a cozinha (a inscrição mostra qual e quanto).');
+      else if (avisoAlimento()) regra.append(' ' + avisoAlimento());
+    }
+
+    const zap = numeroWhatsapp();
+    const aviso = $('encerradas');
+    aviso.textContent = '';
+    aviso.append(
+      elTexto('strong', '', 'Inscrições encerradas.'),
+      ' As inscrições terminaram em ' + dataExtenso(ultimoDia() || '2000-01-01') + '. ' +
+        (zap ? 'Se você precisa falar com a organização, chame no WhatsApp ' + formatarTelefone(C.whatsapp) + '.' : '')
     );
+  }
+
+  // Tudo o que depende da data: topo, valores nos cartões, barra e a etapa que está na tela
+  function aplicarPrazo() {
+    atualizarTopo();
+    estado.pessoas.forEach((p) => {
+      const li = cartaoDe(p);
+      if (li) atualizarSituacao(li, p);
+    });
+    if (!enviando) mostrarEtapa(estado.etapa, false);
   }
 
   // Só a primeira foto carrega de cara; as outras quando chegam perto da tela
@@ -536,7 +665,7 @@
       s.textContent = 'Informe a idade para calcular';
     } else if (i >= C.idadeAdulto) {
       s.dataset.tipo = 'adulto';
-      s.textContent = 'Adulto · ' + brl(C.valorAdulto) + ' + ' + (sorteiaAlimentos() ? 'alimento' : quantidadeTexto(ALIMENTO_GENERICO, 1));
+      s.textContent = 'Adulto · ' + brl(valorDe(p)) + (sorteiaAlimentos() ? ' + alimento' : '');
     } else {
       s.dataset.tipo = 'menor';
       s.textContent = 'Menor de ' + C.idadeAdulto + ' anos · não paga';
@@ -699,9 +828,10 @@
     if (t.menores) partes.push(plural(t.menores, 'menor', 'menores') + ' de ' + C.idadeAdulto + ' anos');
     $('barra-detalhe').textContent = partes.length ? partes.join(' · ') : 'Informe as idades para calcular';
 
-    const visivel = estado.etapa === 1 && formularioNaTela && !tecladoAberto();
+    const fechada = encerradas() && !estado.enviada;
+    const visivel = estado.etapa === 1 && !fechada && formularioNaTela && !tecladoAberto();
     $('barra').classList.toggle('fora', !visivel);
-    document.documentElement.classList.toggle('com-barra', estado.etapa === 1);
+    document.documentElement.classList.toggle('com-barra', estado.etapa === 1 && !fechada);
   }
 
   function problemas() {
@@ -748,9 +878,12 @@
     return alterada() ? 'Enviar correção' : 'Ir para o pagamento';
   }
 
+  let totalNoResumo = null; // total mostrado no resumo, para perceber se o valor mudou antes de confirmar
+
   function renderConfirmacao() {
     sortearAlimentos();
     const t = totais();
+    totalNoResumo = t.total;
 
     const lista = $('resumo-lista');
     lista.textContent = '';
@@ -759,7 +892,7 @@
       li.className = 'resumo-item';
       li.append(
         elTexto('span', 'resumo-nome', p.nome.trim()),
-        elTexto('span', 'resumo-valor', ehAdulto(p) ? brl(C.valorAdulto) : 'Não paga'),
+        elTexto('span', 'resumo-valor', ehAdulto(p) ? brl(valorDe(p)) : 'Não paga'),
         elTexto('span', 'resumo-detalhe', idadeTexto(p) + ' · ' + igrejaTexto(p))
       );
       if (ehAdulto(p) && sorteiaAlimentos()) li.append(elTexto('span', 'resumo-alimento', 'Leva ' + alimentoTexto(p)));
@@ -778,14 +911,15 @@
     } else if (estado.enviada) {
       intro = 'Esta inscrição já está registrada com o código ' + estado.codigo + '.';
     }
+    if (t.porValor.size > 1) intro += ' Quem já estava inscrito continua com o valor da época em que se inscreveu.';
     $('confirmar-intro').textContent = intro;
     $('confirmar').textContent = rotuloConfirmar();
     $('desfazer').hidden = !alterada();
     $('envio-erro').hidden = true;
   }
 
-  function dadosParaPlanilha(codigo) {
-    const t = totais();
+  function dadosParaPlanilha(codigo, loteAgora) {
+    const t = totais(loteAgora);
     return {
       codigo: codigo,
       responsavel: estado.responsavel.trim(),
@@ -799,7 +933,7 @@
         idade: idadeDe(p),
         adulto: ehAdulto(p),
         igreja: igrejaTexto(p),
-        valor: ehAdulto(p) ? C.valorAdulto : 0,
+        valor: valorDe(p, loteAgora),
         alimento: ehAdulto(p) && sorteiaAlimentos() ? alimentoTexto(p) : '',
       })),
     };
@@ -827,6 +961,11 @@
 
   let enviando = false;
 
+  function avisarEnvio(texto) {
+    $('envio-erro').textContent = texto;
+    $('envio-erro').hidden = false;
+  }
+
   async function confirmarInscricao() {
     if (enviando) return;
     if (problemas().length) {
@@ -837,6 +976,20 @@
     // Já registrada e sem mudanças: envia de novo com o mesmo código antes de mostrar o pagamento.
     // Se a linha continua na planilha, nada muda; se alguém apagou a linha, ela volta.
     const reenvio = estado.enviada && !alterada();
+
+    if (!reenvio && encerradas()) {
+      avisarEnvio('As inscrições foram encerradas em ' + dataExtenso(ultimoDia()) +
+        '. Para mudar algo na inscrição, fale com a organização.');
+      return;
+    }
+    // O valor pode ter mudado com a página aberta (passou da meia-noite do último dia de um valor)
+    const loteEnvio = loteAtual();
+    if (!reenvio && totais(loteEnvio).total !== totalNoResumo) {
+      renderConfirmacao();
+      avisarEnvio('O valor por adulto mudou para ' + brl(LOTES[loteEnvio].valor) +
+        '. Confira o novo total e toque no botão de novo.');
+      return;
+    }
 
     // Os mesmos dados enviados de novo (a internet caiu) usam o mesmo código: a planilha não duplica.
     // Dados diferentes ganham código novo, e os códigos anteriores saem da planilha.
@@ -866,13 +1019,16 @@
     $('envio-erro').hidden = true;
 
     try {
-      const dados = dadosParaPlanilha(codigo);
+      const dados = dadosParaPlanilha(codigo, loteEnvio);
       if (substitui.length) dados.substitui = substitui;
       const resposta = await enviarParaPlanilha(dados);
       if (!resposta || resposta.ok !== true) {
         throw new Error((resposta && resposta.erro) || 'resposta inesperada da planilha');
       }
       if (!reenvio) {
+        estado.pessoas.forEach((p) => {
+          if (!temLote(p)) p.lote = loteEnvio;
+        });
         estado.substituiu = estado.enviada ? estado.codigo : '';
         estado.codigo = codigo;
         estado.enviada = true;
@@ -916,6 +1072,7 @@
         igreja: p.igreja,
         detalhe: p.detalhe,
         alimento: p.alimento,
+        lote: p.lote,
       })
     );
     estado.responsavel = r.responsavel;
@@ -951,7 +1108,7 @@
       linhas.push('   ' + igrejaTexto(p));
       linhas.push(
         ehAdulto(p)
-          ? '   ' + brl(C.valorAdulto) + (sorteiaAlimentos() ? ' · leva ' + alimentoTexto(p) : '')
+          ? '   ' + brl(valorDe(p)) + (sorteiaAlimentos() ? ' · leva ' + alimentoTexto(p) : '')
           : '   Menor de ' + C.idadeAdulto + ' anos · não paga'
       );
     });
@@ -1064,10 +1221,10 @@
     });
     levar.hidden = !sorteia;
     $('levar-nota').hidden = !sorteia;
-    $('levar-aviso').textContent =
-      'Cada adulto leva ' + quantidadeTexto(ALIMENTO_GENERICO, 1) + '.' + (avisoAlimento() ? ' ' + avisoAlimento() : '');
-    $('levar-aviso').hidden = sorteia;
-    $('levar').hidden = !t.adultos;
+    $('levar-titulo').textContent = sorteia ? 'Alimento para levar' : 'Alimentos';
+    $('levar-aviso').textContent = avisoAlimento();
+    $('levar-aviso').hidden = sorteia || !avisoAlimento();
+    $('levar').hidden = !t.adultos || (!sorteia && !avisoAlimento());
   }
 
   /* ---------- Navegação entre etapas ---------- */
@@ -1088,10 +1245,14 @@
 
   function mostrarEtapa(n, rolar) {
     estado.etapa = n;
-    if (n === 2) renderConfirmacao();
-    if (n === 3) renderPagamento();
+    // Depois do prazo, quem não tem inscrição vê só o aviso de encerramento
+    const fechada = encerradas() && !estado.enviada;
+    if (n === 2 && !fechada) renderConfirmacao();
+    if (n === 3 && !fechada) renderPagamento();
+    $('encerradas').hidden = !fechada;
+    document.querySelector('.etapas').hidden = fechada;
     [1, 2, 3].forEach((i) => {
-      $('etapa-' + i).hidden = i !== n;
+      $('etapa-' + i).hidden = fechada || i !== n;
       if (i === n) $('etapa-ind-' + i).setAttribute('aria-current', 'step');
       else $('etapa-ind-' + i).removeAttribute('aria-current');
     });
@@ -1102,7 +1263,9 @@
         'Se mudar algo, toque em Continuar e envie a correção.';
     }
     $('ir-inscricao').textContent = estado.enviada ? 'Ver minha inscrição' : 'Fazer inscrição';
+    $('ir-inscricao').hidden = fechada;
     atualizarNavegacao();
+    if (fechada) $('voltar-etapa').hidden = true;
     atualizarBarra();
     salvar();
     if (rolar) {
@@ -1271,6 +1434,22 @@
     atualizarBarra();
   }
 
+  // Inscrições gravadas antes dos valores por data (até 23/11/2026) foram todas no primeiro valor
+  if (estado.enviada) {
+    const r = estado.registrado;
+    const nomes = new Set();
+    if (r) {
+      r.pessoas.forEach((p) => {
+        if (!temLote(p)) p.lote = 0;
+        nomes.add(p.nome.trim());
+      });
+    }
+    const semMudanca = !alterada();
+    estado.pessoas.forEach((p) => {
+      if (!temLote(p) && (semMudanca || !r || nomes.has(p.nome.trim()))) p.lote = 0;
+    });
+  }
+
   preencherTopo();
   montarFotos();
   iniciarFormulario();
@@ -1291,4 +1470,10 @@
       })
       .catch((erro) => console.warn('Não foi possível conferir a inscrição na planilha:', erro));
   }
+
+  // A data vale pelo relógio do servidor do site; volta a conferir quando a pessoa volta para a página
+  acertarRelogio().then(aplicarPrazo);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') aplicarPrazo();
+  });
 })();

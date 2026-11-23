@@ -10,7 +10,7 @@
   <meta name="robots" content="noindex">
   <!-- Prévia quando o link é compartilhado no WhatsApp -->
   <meta property="og:title" content="Confraternização 2026 · IAP Poço">
-  <meta property="og:description" content="11, 12 e 13 de dezembro. Faça aqui a sua inscrição e a da sua família.">
+  <meta property="og:description" content="11, 12 e 13 de dezembro. Faça aqui a sua inscrição e a da sua família até 5 de dezembro.">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:url" content="https://inscricao-confra-2026.vercel.app/">
@@ -18,7 +18,7 @@
   <meta property="og:image:type" content="image/jpeg">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Confraternização 2026 da IAP Poço, 11, 12 e 13 de dezembro. Inscrições abertas.">
+  <meta property="og:image:alt" content="Confraternização 2026 da IAP Poço, 11, 12 e 13 de dezembro. Inscrições até 5 de dezembro.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="theme-color" content="#10357a">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2310357a'/%3E%3Crect x='14' y='17' width='36' height='33' rx='5' fill='%23fff'/%3E%3Crect x='14' y='17' width='36' height='10' rx='4' fill='%23b9cdf2'/%3E%3Crect x='22' y='11' width='5' height='11' rx='2.5' fill='%23fff'/%3E%3Crect x='37' y='11' width='5' height='11' rx='2.5' fill='%23fff'/%3E%3C/svg%3E">
@@ -41,9 +41,13 @@
         <p class="datas-mes" id="datas-mes">de dezembro de 2026</p>
       </div>
       <p class="topo-local" id="topo-local" hidden></p>
+      <ul class="lotes" id="lotes" aria-label="Valor por adulto">
+        <li class="lote lote-atual"><span class="lote-prazo">Até 30/11<span class="lote-tag">agora</span></span><strong class="lote-valor">R$ 50,00</strong></li>
+        <li class="lote"><span class="lote-prazo">De 1º a 5/12</span><strong class="lote-valor">R$ 100,00</strong></li>
+      </ul>
       <p class="topo-regra" id="topo-regra">
-        <strong>R$ 50,00 por adulto</strong> (15 anos ou mais) e <strong>1 kg de alimento</strong>.
-        Quais alimentos levar, a organização vai avisar depois. Menores de 15 anos não pagam.
+        Valor por adulto (15 anos ou mais). Menores de 15 anos não pagam.
+        <strong>Inscrições até 5 de dezembro.</strong>
       </p>
       <a class="botao" id="ir-inscricao" href="#inscricao">Fazer inscrição</a>
     </div>
@@ -73,6 +77,8 @@
         <li id="etapa-ind-2"><button type="button" class="etapa-botao" data-etapa="2" disabled><span class="num">2</span> Confirmar</button></li>
         <li id="etapa-ind-3"><button type="button" class="etapa-botao" data-etapa="3" disabled><span class="num">3</span> Pagar</button></li>
       </ol>
+
+      <p class="aviso aviso-info" id="encerradas" hidden></p>
 
       <button type="button" class="botao-texto link-nav botao-voltar" id="voltar-etapa" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
@@ -181,7 +187,7 @@
         </div>
 
         <div class="levar" id="levar" hidden>
-          <h3>Alimento para levar</h3>
+          <h3 id="levar-titulo">Alimento para levar</h3>
           <ul id="levar-lista"></ul>
           <p id="levar-aviso" hidden></p>
           <p class="levar-nota" id="levar-nota" hidden>
